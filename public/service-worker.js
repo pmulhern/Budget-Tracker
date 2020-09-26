@@ -2,18 +2,17 @@
 const CACHE_NAME = "static-cache-v2";
 const DATA_CACHE_NAME = "data-cache-v1";
 
-const iconSizes = ["72", "96", "128", "144", "152", "192", "384", "512"];
+const iconSizes = ["192", "512"];
 const iconFiles = iconSizes.map(
-  (size) => `/assets/images/icons/icon-${size}x${size}.png`
+  (size) => `/icons/icon-${size}x${size}.png`
 );
 
 const staticFilesToPreCache = [
   "/",
   "/app.js",
-  "/favicon.ico",
   "/manifest.webmanifest",
 ].concat(iconFiles);
-
+console.log(staticFilesToPreCach)
 
 // install
 self.addEventListener("install", function(evt) {
@@ -41,21 +40,19 @@ self.addEventListener("activate", function(evt) {
       );
     })
   );
-
   self.clients.claim();
 });
 
 // fetch
 self.addEventListener("fetch", function(evt) {
-  const {url} = evt.request;
-  if (url.includes("/all") || url.includes("/find")) {
+  if (evt.request.url.includes("/api/")) {
     evt.respondWith(
       caches.open(DATA_CACHE_NAME).then(cache => {
         return fetch(evt.request)
           .then(response => {
             // If the response was good, clone it and store it in the cache.
             if (response.status === 200) {
-              cache.put(evt.request, response.clone());
+              cache.put(evt.request.url, response.clone());
             }
 
             return response;
@@ -66,14 +63,15 @@ self.addEventListener("fetch", function(evt) {
           });
       }).catch(err => console.log(err))
     );
-  } else {
-    // respond from static cache, request is not for /api/*
-    evt.respondWith(
-      caches.open(CACHE_NAME).then(cache => {
-        return cache.match(evt.request).then(response => {
-          return response || fetch(evt.request);
-        });
-      })
-    );
+
+    return;
   }
+
+  evt.respondWith(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(evt.request).then(response => {
+        return response || fetch(evt.request);
+      });
+    })
+  );
 });
